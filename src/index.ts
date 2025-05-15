@@ -27,16 +27,52 @@ export default {
 		// const steps = parseInt(url.searchParams.get('steps') || '4', 10);
 		const seed = 100;
 
-		const imageStream: ReadableStream<Uint8Array> = await env.AI.run('@cf/bytedance/stable-diffusion-xl-lightning', {
-			prompt,
-			seed,
-		});
+		const model = url.searchParams.get('model') || '@cf/bytedance/stable-diffusion-xl-lightning';
 
-		return new Response(imageStream, {
-			headers: {
-				'Content-Type': 'image/jpeg',
-			},
-		});
+		try {
+			if (model === '@cf/bytedance/stable-diffusion-xl-lightning') {
+				const response = await env.AI.run('@cf/bytedance/stable-diffusion-xl-lightning', {
+					prompt,
+					seed,
+				});
+				// SDXL-Lightning returns a ReadableStream directly
+				return new Response(response, {
+					headers: {
+						'Content-Type': 'image/jpeg',
+					},
+				});
+			} else if (model === '@cf/black-forest-labs/flux-1-schnell') {
+				const response = await env.AI.run('@cf/black-forest-labs/flux-1-schnell', {
+					prompt,
+				});
+				// For Flux model, we need to handle the response format differently
+				// Convert the response to a binary format that can be used in a Response
+				const binaryString = atob((response as any).data[0].base64);
+				const imageBuffer = Uint8Array.from(binaryString, (char) => char.charCodeAt(0));
+
+				return new Response(imageBuffer, {
+					headers: {
+						'Content-Type': 'image/jpeg',
+					},
+				});
+			} else if (model === '@cf/lykon/dreamshaper-8-lcm') {
+				const response = await env.AI.run('@cf/lykon/dreamshaper-8-lcm', {
+					prompt,
+					seed,
+				});
+				// Dreamshaper returns a ReadableStream directly
+				return new Response(response, {
+					headers: {
+						'Content-Type': 'image/jpeg',
+					},
+				});
+			} else {
+				return new Response('Invalid model', { status: 400 });
+			}
+		} catch (error: unknown) {
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			return new Response(`Error generating image: ${errorMessage}`, { status: 500 });
+		}
 	},
 };
 
