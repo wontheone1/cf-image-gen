@@ -50,15 +50,23 @@ export default {
 					prompt,
 				});
 				// For Flux model, we need to handle the response format differently
-				// Convert the response to a binary format that can be used in a Response
-				const binaryString = atob((response as any).data[0].base64);
-				const imageBuffer = Uint8Array.from(binaryString, (char) => char.charCodeAt(0));
+				// Based on the console output, the response has an 'image' property with base64 data
+				if (response && typeof response === 'object' && 'image' in response) {
+					const base64Data = (response as any).image;
+					// Remove data URL prefix if present
+					const base64Image = base64Data.replace(/^data:image\/\w+;base64,/, '');
+					const binaryString = atob(base64Image);
+					const imageBuffer = Uint8Array.from(binaryString, (char) => char.charCodeAt(0));
 
-				return new Response(imageBuffer, {
-					headers: {
-						'Content-Type': 'image/jpeg',
-					},
-				});
+					return new Response(imageBuffer, {
+						headers: {
+							'Content-Type': 'image/jpeg',
+						},
+					});
+				} else {
+					console.error('Unexpected response format:', response);
+					return new Response('Invalid response format from model', { status: 500 });
+				}
 			} else if (model === '@cf/lykon/dreamshaper-8-lcm') {
 				const response = await env.AI.run('@cf/lykon/dreamshaper-8-lcm', {
 					prompt,
@@ -75,6 +83,7 @@ export default {
 			}
 		} catch (error: unknown) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			console.error('Error generating image:', errorMessage);
 			return new Response(`Error generating image: ${errorMessage}`, { status: 500 });
 		}
 	},
