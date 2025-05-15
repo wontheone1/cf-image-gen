@@ -20,6 +20,8 @@ export default {
 		const url = new URL(request.url);
 		const prompt = url.searchParams.get('prompt');
 
+		console.log('prompt', prompt);
+
 		if (!prompt) {
 			return new Response('Prompt is required', { status: 400 });
 		}
@@ -28,6 +30,8 @@ export default {
 		const seed = 100;
 
 		const model = url.searchParams.get('model') || '@cf/bytedance/stable-diffusion-xl-lightning';
+
+		console.log('model', model);
 
 		try {
 			if (model === '@cf/bytedance/stable-diffusion-xl-lightning') {
